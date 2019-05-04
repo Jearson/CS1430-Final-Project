@@ -1,0 +1,13 @@
+'queries.txt' will be where you tell unsplash the 
+<query>,<num_pgs>,<dirname in imgs folder>
+in that order to organize the downloaded images.
+
+Then type:
+	python3 download_images.py 
+to download all of the queries in queries.txt
+
+Stuff will print, so hopefully it's clear what's going on.
+
+Lmk know if there's anything you want changed or clarified
+
+-Jearson
