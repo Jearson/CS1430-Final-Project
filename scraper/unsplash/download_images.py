@@ -43,7 +43,7 @@ def download_images(query, req_pgs, dirname):
         print("Downloading {} images from {}".format(len(res), json_url))
         for i in range(len(res)):
             img_url = res[i]["urls"]["raw"]
-            urlr.urlretrieve(img_url, os.path.join(query_dir, "{}_{}-{}.png").format(query,pg_num,i))
+            urlr.urlretrieve(img_url, os.path.join(query_dir, "unsplash_{}_{}-{}.png").format(query,pg_num,i))
 
 def main():
     queries_file = "queries.txt" # default

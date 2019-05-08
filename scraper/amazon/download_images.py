@@ -163,17 +163,17 @@ def download_images(query, start_pg, end_pg, dirname):
             try:
                 if ('.jpg' in img_data):
                     imgdata = urlr.urlopen(img_data).read() # The 'img data' was actually a link
-                    filename = os.path.join(query_dir, "{}_{}-{}.jpg").format(query,pg_num,i)
+                    filename = os.path.join(query_dir, "amazon_{}_{}-{}.jpg").format(query,pg_num,i)
                     with open(filename, 'wb') as f:
                         f.write(imgdata)
                 elif ('.png' in img_data):
                     imgdata = urlr.urlopen(img_data).read() # The 'img data' was actually a link
-                    filename = os.path.join(query_dir, "{}_{}-{}.png").format(query,pg_num,i)
+                    filename = os.path.join(query_dir, "amazon_{}_{}-{}.png").format(query,pg_num,i)
                     with open(filename, 'wb') as f:
                         f.write(imgdata)
                 else:
                     imgdata = base64.b64decode(img_data[24:-1])
-                    filename = os.path.join(query_dir, "{}_{}-{}.png").format(query,pg_num,i)
+                    filename = os.path.join(query_dir, "amazon_{}_{}-{}.png").format(query,pg_num,i)
                     with open(filename, 'wb') as f:
                         f.write(imgdata)
             except:
