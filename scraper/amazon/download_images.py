@@ -13,16 +13,44 @@ IMG_ROOT = "./imgs"
 SEARCHPG_URL = "https://www.amazon.com/s?k={}&lo=list&page={}&qid=1556933209&ref=sr_pg_1"
 URLOPENER = urlr.build_opener()
 USRAGENT_TEMPLATE = "Mozilla/5.0 (Macintosh; Intel Mac OS X {}.{}; rv:{}.0) Gecko/20100101 Firefox/{}.0"
+REFERER_URL_TEMPLATE = "https://www.amazon.com/s/ref=nb_sb_noss_2?url=search-alias%3Daps&field-keywords={}"
 # USRAGENT_TEMPLATE = "Mozilla/5.0 (Windows NT {}.{}; rv:{}.0) Gecko/20100101 Firefox/{}.0" # I don't think this works as well...
+# Oohh okay, so they were sus about the number of requests I made AND the lack of headers (maybe both together is a sparate entity)
+# Hmmm okay, so it definitely seems like they're watching ip addresses for this...
+# Maybe if I switch wifi networks?
+# More headers == more airtime before captcha kicks in
+# TODO: Lookinto weird startup issue?
+
+"""
+Host: m.media-amazon.com
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:66.0) Gecko/20100101 Firefox/66.0
+Accept: image/webp,*/*
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Referer: https://www.amazon.com/s/ref=nb_sb_noss_2?url=search-alias%3Daps&field-keywords=television
+Connection: keep-alive
+TE: Trailers
+"""
 
 # This entire thing work for around a little more than 21 min, when amazon catches on to us
 
 def querypgdir(query_string):
     s = query_string.split(",")
     return (s[0],int(s[1]),int(s[2]),s[3]) # expecting <search query>,<start pg num>,<end pgnum>,<name of dest dir>
+def DEFAULT_URLOPENER_HEADERS():
+    URLOPENER.addheaders = [
+            ('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv,66.0) Gecko/20100101 Firefox/66.0'),
+            ('Referer', ''),
+            ('Host', 'm.media-amazon.com'),
+            ('Accept', 'image/webp,*/*'),
+            ('Accept-Language', 'en-US,en;q=0.5'),
+            # ('Accept-Encoding', 'gzip, deflate, br'),
+            ('Connection', 'keep-alive'),
+            # ('TE', 'Trailers')
+            ]
 
 def ROLL_URLOPENER_HEADERS():    
-    print("Rerolling headers for url openers...")
+    print("Rerolling User-Agent header for url openers...")
     print("Old User-Agent header: {}".format(URLOPENER.addheaders))
     # For now just change MacOSX versions
     maj = random.randint(8,10) # Mac
@@ -31,7 +59,7 @@ def ROLL_URLOPENER_HEADERS():
     # min = random.randint(1,3) # Windows
     cvs_tag = random.randint(1,60)
     ffx_vers = random.randint(63,64)
-    URLOPENER.addheaders  = [("User-Agent", USRAGENT_TEMPLATE.format(maj, min, cvs_tag, ffx_vers))]
+    URLOPENER.addheaders[0] = ("User-Agent", USRAGENT_TEMPLATE.format(maj, min, cvs_tag, ffx_vers)) # User-Agent is first index
     print ("New User-Agent header: {}".format(URLOPENER.addheaders))
 
 
@@ -43,8 +71,9 @@ def download_images(query, start_pg, end_pg, dirname):
     except FileExistsError:
         pass # directory already exists
     # Add headers to the request to make the Amazon servers not hate us
-    URLOPENER.addheaders  = [("User-Agent", USRAGENT_TEMPLATE.format(10, 11, 66, 64))] # My mac's normal headers
-    print("Default url opener headers: {}".format(URLOPENER.addheaders))
+    DEFAULT_URLOPENER_HEADERS()
+    URLOPENER.addheaders[1] = ('Referer', REFERER_URL_TEMPLATE.format(urlp.quote(query))) # update the referrer headers to suit the query
+    print("Starting URL opener headers: {}".format(URLOPENER.addheaders))
     print("===== QUERY: {}".format(query))
     for pg_num in range(start_pg, end_pg):
         searchpg_url = SEARCHPG_URL.format(urlp.quote(query),pg_num)
