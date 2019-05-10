@@ -1,3 +1,0 @@
-~1885 lines (images) from amazon [counting lines from unzip -l on zipped result]
-~2500 combined lines (images) [counting lines from unzip -l on zipped result]
-~613 lines (images) reported from unsplash [in shell: sum=0; for d in */; do lin=$(ls -l "$d" | wc -l); (( sum = lin + sum )); done; echo $sum]
