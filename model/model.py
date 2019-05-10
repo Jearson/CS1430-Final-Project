@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 from skimage import io, img_as_ubyte, img_as_float32
 import skimage.segmentation
+from scipy.ndimage.filters import gaussian_filter
+
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -45,18 +47,19 @@ class Model:
         W1 = tf.Variable(tf.truncated_normal([372736, 256], stddev=0.1))
         b1 = tf.Variable(tf.truncated_normal([256], stddev=0.1))
         
-        W2 = tf.Variable(tf.truncated_normal([256, 2048], stddev=0.1))
-        b2 = tf.Variable(tf.truncated_normal([2048], stddev=0.1))
+        W2 = tf.Variable(tf.truncated_normal([256, 10], stddev=0.1))
+        b2 = tf.Variable(tf.truncated_normal([10], stddev=0.1))
         
-        W3 = tf.Variable(tf.truncated_normal([2048, 10], stddev=0.1))
-        b3 = tf.Variable(tf.truncated_normal([10], stddev=0.1))
+        # W3 = tf.Variable(tf.truncated_normal([2048, 10], stddev=0.1))
+        # b3 = tf.Variable(tf.truncated_normal([10], stddev=0.1))
                              
         feedForward1 = tf.nn.relu(tf.matmul(convReshaped, W1) + b1)
         dropOut1 = tf.nn.dropout(feedForward1, keep_prob=.8)
-        feedForward2 = tf.nn.relu(tf.matmul(dropOut1, W2) + b2)
-        dropOut2 = tf.nn.dropout(feedForward2, keep_prob=.8)
+        # feedForward2 = tf.nn.relu(tf.matmul(dropOut1, W2) + b2)
+        # dropOut2 = tf.nn.dropout(feedForward2, keep_prob=.8)
                              
-        return tf.matmul(dropOut2, W3) + b3 #tf.nn.softmax(tf.matmul(feedForward1, W2) + b2)
+        return tf.matmul(dropOut1, W2) + b2
+        # return tf.matmul(dropOut2, W3) + b3 #tf.nn.softmax(tf.matmul(feedForward1, W2) + b2)
     
     def loss_function(self):
         return tf.losses.softmax_cross_entropy(self.label, self.prediction)
@@ -93,30 +96,42 @@ def readZippedFiles(pathList):
                 imgFile = cv2.imdecode(np.frombuffer(byteFile, np.uint8), cv2.IMREAD_COLOR) # 1 for greyscale?
                 img = img_as_float32(imgFile)
                 allUnzippedImgs.append(img)
-                if n == 0: # Tablet
-                    labels.append([0., 0., 0., 1., 0., 0., 0., 0., 0., 0.]) #3
-                elif n == 1: # TV
-                    labels.append([0., 0., 0., 0., 0., 0., 0., 0., 1., 0.]) #8
-                elif n == 2: # Handheld Console
-                    labels.append([0., 0., 0., 0., 0., 0., 0., 0., 0., 1.]) #9
-                elif n == 3: # Camera
-                    labels.append([0., 0., 0., 0., 0., 0., 0., 1., 0., 0.]) #7
-                elif n == 4: # Phone
-                    labels.append([0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]) #4
-                elif n == 5: # Desktop
-                    labels.append([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.]) #2
-                elif n == 6: # PC Laptop
-                    labels.append([0., 1., 0., 0., 0., 0., 0., 0., 0., 0.]) #1
-                elif n == 7: # Router
-                    labels.append([0., 0., 0., 0., 0., 1., 0., 0., 0., 0.]) #5
-                elif n == 8: # Macbook
-                    labels.append([1., 0., 0., 1., 0., 0., 0., 0., 0., 0.]) #0
-                elif n == 9: # Smart Speaker
-                    labels.append([0., 0., 0., 0., 0., 0., 1., 0., 0., 0.]) #6
+                labels.append(label(n))
+                allUnzippedImgs.append(np.fliplr(img))
+                labels.append(label(n))
+                # allUnzippedImgs.append(np.clip(img - 50, 0, None))
+                # labels.append(label(n))
+                # allUnzippedImgs.append(np.clip(img + 50, None, 255))
+                # labels.append(label(n))
+                # allUnzippedImgs.append(gaussian_filter(img, sigma=2))
+                # labels.append(label(n))
             else:
                 n += 1
 
     return labels, allUnzippedImgs
+
+def label(x):
+    if x == 0: # Tablet
+        return [0., 0., 0., 1., 0., 0., 0., 0., 0., 0.] #3
+    elif x == 1: # TV
+        return [0., 0., 0., 0., 0., 0., 0., 0., 1., 0.] #8
+    elif x == 2: # Handheld Console
+        return [0., 0., 0., 0., 0., 0., 0., 0., 0., 1.] #9
+    elif x == 3: # Camera
+        return [0., 0., 0., 0., 0., 0., 0., 1., 0., 0.] #7
+    elif x == 4: # Phone
+        return [0., 0., 0., 0., 1., 0., 0., 0., 0., 0.] #4
+    elif x == 5: # Desktop
+        return [0., 0., 1., 0., 0., 0., 0., 0., 0., 0.] #2
+    elif x == 6: # PC Laptop
+        return [0., 1., 0., 0., 0., 0., 0., 0., 0., 0.] #1
+    elif x == 7: # Router
+        return [0., 0., 0., 0., 0., 1., 0., 0., 0., 0.] #5
+    elif x == 8: # Macbook
+        return [1., 0., 0., 0., 0., 0., 0., 0., 0., 0.] #0
+    elif x == 9: # Smart Speaker
+        return [0., 0., 0., 0., 0., 0., 1., 0., 0., 0.] #6
+
 
 # read in unzipped training data + apply labels
 def readFiles(pathList):
@@ -369,9 +384,6 @@ def main():
     '''
     testPathList = ['./test/']
     testImgData = np.array(getTestImgs(testPathList))
-    print(testImgData)
-    print(testImgData[0].shape)
-    print(testImgData[4].shape)
     result = session.run(m.answer, feed_dict={m.image: testImgData})
     print(translateResults(result))
     '''
