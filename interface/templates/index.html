@@ -5,12 +5,15 @@
     </head>
     <body>
       <h1>IOT Identifier</h1>
-      <h3>{{msg}}</h3>
+      <h3 onload="getGraph()">{{msg}}</h3>
       <form action="/" method="POST" enctype="multipart/form-data">
-	<input type="file" name="file" accept="image/*">
+        <input type="file" name="file" accept="image/*">
         <br><br>
         <input type="submit" value="Submit">
       </form>
-      <p>{{results}}</p>
+      <p id="results">{{results}}</p>
+      <p id="graph"></p>
+      <img src={{url_for('static', filename="userData/"+userImg)}}>
+      <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     </body>
 </html>

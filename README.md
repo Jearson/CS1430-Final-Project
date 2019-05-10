@@ -38,4 +38,4 @@ Running the Model: (if you don't already have saved weights or want to train on 
 Starting Up the server:
 
 - Run "python server.py" from the interface folder
-- Note: If you're running on a VM in  Google Cloud Compute, make sure that the firewall allows http for port 8080. Then in the browser, your url should be something like http://xx.xxx.xxx.xxx:8080/
+- Note: If you're running on a VM in  Google Cloud Compute, make sure that the firewall allows http for port 8080. Then in the browser, your url should be something like http://xx.xxx.xxx.xxx:8080/ . If you're using the CS1430 evironment, you might also have to install flask ("pip install --user flask").
