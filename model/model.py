@@ -53,15 +53,18 @@ class Model:
         b3 = tf.Variable(tf.truncated_normal([10], stddev=0.1))
                              
         feedForward1 = tf.nn.relu(tf.matmul(convReshaped, W1) + b1)
-        feedForward2 = tf.nn.relu(tf.matmul(feedForward1, W2) + b2)
+        dropOut1 = tf.nn.dropout(feedForward1, keep_prob=.8)
+        feedForward2 = tf.nn.relu(tf.matmul(dropOut1, W2) + b2)
+        dropOut2 = tf.nn.dropout(feedForward2, keep_prob=.8)
                              
-        return tf.matmul(feedForward2, W3) + b3 #tf.nn.softmax(tf.matmul(feedForward1, W2) + b2)
+        return tf.matmul(dropOut2, W3) + b3 #tf.nn.softmax(tf.matmul(feedForward1, W2) + b2)
     
     def loss_function(self):
         return tf.losses.softmax_cross_entropy(self.label, self.prediction)
     
     def optimizer_function(self):
-        return tf.train.AdamOptimizer(1E-4).minimize(self.loss)
+        return tf.train.AdamOptimizer(5E-4, beta1=.9, beta2=0.999).minimize(self.loss)
+
     
     def accuracy_function(self):
         correct_prediction = tf.equal(tf.argmax(self.prediction, 1),
@@ -337,7 +340,7 @@ def main():
     saver = tf.train.Saver()
     
     # Training:
-    numEpochs = 12#30
+    numEpochs = 15#30
     batchSz = 50
     numTrainData = imgData.shape[0] # amount of images for training
 

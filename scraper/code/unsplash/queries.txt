@@ -1,0 +1,5 @@
+Macbook,5,Mac Laptop
+Lenovo,5,PC Laptop
+Smartphone,5,Phone
+Tablet,5,Tablet
+Camera,5,Camera
