@@ -72,23 +72,47 @@ class Model:
 # read in zipped files
 def readZippedFiles(pathList):
     allUnzippedImgs = []
+    labels = []
     for path in pathList:
         # Read in zipped images without extracting:
         zippedF = zipfile.ZipFile(path, 'r')
         zippedNames = zippedF.namelist()
-        
-        for i, currFile in enumerate(zippedNames[:len(zippedNames)-1]):
-            printRes = str(i) + ") " + currFile
-            print(printRes)
-            byteFile = zippedF.read(currFile)
-            imgFile = cv2.imdecode(np.frombuffer(byteFile, np.uint8), cv2.IMREAD_COLOR) # 1 for greyscale?
-            img = img_as_float32(imgFile)
-            allUnzippedImgs.append(img)
-        print(img.shape)
-        #plt.imshow(img)
-        #plt.show()
-        #break
-    return allUnzippedImgs
+        n = -2
+
+        for currFile in zippedNames:
+            if currFile == "imgs/.DS_Store":
+                continue
+            if not currFile[-1] == '/':
+                printRes = str(n) + ") " + currFile
+                print(printRes)
+                byteFile = zippedF.read(currFile)
+                imgFile = cv2.imdecode(np.frombuffer(byteFile, np.uint8), cv2.IMREAD_COLOR) # 1 for greyscale?
+                img = img_as_float32(imgFile)
+                allUnzippedImgs.append(img)
+                if n == 0: # Tablet
+                    labels.append([0., 0., 0., 1., 0., 0., 0., 0., 0., 0.]) #3
+                elif n == 1: # TV
+                    labels.append([0., 0., 0., 0., 0., 0., 0., 0., 1., 0.]) #8
+                elif n == 2: # Handheld Console
+                    labels.append([0., 0., 0., 0., 0., 0., 0., 0., 0., 1.]) #9
+                elif n == 3: # Camera
+                    labels.append([0., 0., 0., 0., 0., 0., 0., 1., 0., 0.]) #7
+                elif n == 4: # Phone
+                    labels.append([0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]) #4
+                elif n == 5: # Desktop
+                    labels.append([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.]) #2
+                elif n == 6: # PC Laptop
+                    labels.append([0., 1., 0., 0., 0., 0., 0., 0., 0., 0.]) #1
+                elif n == 7: # Router
+                    labels.append([0., 0., 0., 0., 0., 1., 0., 0., 0., 0.]) #5
+                elif n == 8: # Macbook
+                    labels.append([1., 0., 0., 1., 0., 0., 0., 0., 0., 0.]) #0
+                elif n == 9: # Smart Speaker
+                    labels.append([0., 0., 0., 0., 0., 0., 1., 0., 0., 0.]) #6
+            else:
+                n += 1
+
+    return labels, allUnzippedImgs
 
 # read in unzipped training data + apply labels
 def readFiles(pathList):
@@ -211,8 +235,10 @@ def main():
     numLabels = 10 # labels should be one-hot vectors
     
     #import data
-    pathList = ['../scraper/unsplash/imgs/Macbook/', '../scraper/unsplash/imgs/Phone/', '../scraper/unsplash/imgs/Camera/'] # list of zipped data
-    labelData, imgData = readFiles(pathList)
+    # pathList = ['../scraper/unsplash/imgs/Macbook/', '../scraper/unsplash/imgs/Phone/', '../scraper/unsplash/imgs/Camera/'] # list of zipped data
+    path = ['./imgs.zip']
+    # labelData, imgData = readFiles(pathList)
+    labelData, imgData = readZippedFiles(path)
     labelData = np.array(labelData)
     imgData = np.array(imgData)
     imgHeight = imgData.shape[1]
@@ -229,7 +255,7 @@ def main():
     session.run(tf.global_variables_initializer())
     
     # Training:
-    numEpochs = 12
+    numEpochs = 30
     batchSz = 50
     numTrainData = imgData.shape[0] # amount of images for training
 
@@ -263,8 +289,11 @@ def main():
         print(totalAcc / totalChecked)
 
     # Testing:
-    testPathList = ['../testData/']
+    testPathList = ['./test/']
     testImgData = np.array(getTestImgs(testPathList))
+    print(testImgData)
+    print(testImgData[0].shape)
+    print(testImgData[4].shape)
     result = session.run(m.answer, feed_dict={m.image: testImgData})
     print(translateResults(result))
 
