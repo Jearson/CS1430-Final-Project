@@ -4,6 +4,7 @@ import zipfile
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 from skimage import io, img_as_ubyte, img_as_float32
 import skimage.segmentation
 
@@ -72,23 +73,47 @@ class Model:
 # read in zipped files
 def readZippedFiles(pathList):
     allUnzippedImgs = []
+    labels = []
     for path in pathList:
         # Read in zipped images without extracting:
         zippedF = zipfile.ZipFile(path, 'r')
         zippedNames = zippedF.namelist()
-        
-        for i, currFile in enumerate(zippedNames[:len(zippedNames)-1]):
-            printRes = str(i) + ") " + currFile
-            print(printRes)
-            byteFile = zippedF.read(currFile)
-            imgFile = cv2.imdecode(np.frombuffer(byteFile, np.uint8), cv2.IMREAD_COLOR) # 1 for greyscale?
-            img = img_as_float32(imgFile)
-            allUnzippedImgs.append(img)
-        print(img.shape)
-        #plt.imshow(img)
-        #plt.show()
-        #break
-    return allUnzippedImgs
+        n = -2
+
+        for currFile in zippedNames:
+            if currFile == "imgs/.DS_Store":
+                continue
+            if not currFile[-1] == '/':
+                printRes = str(n) + ") " + currFile
+                print(printRes)
+                byteFile = zippedF.read(currFile)
+                imgFile = cv2.imdecode(np.frombuffer(byteFile, np.uint8), cv2.IMREAD_COLOR) # 1 for greyscale?
+                img = img_as_float32(imgFile)
+                allUnzippedImgs.append(img)
+                if n == 0: # Tablet
+                    labels.append([0., 0., 0., 1., 0., 0., 0., 0., 0., 0.]) #3
+                elif n == 1: # TV
+                    labels.append([0., 0., 0., 0., 0., 0., 0., 0., 1., 0.]) #8
+                elif n == 2: # Handheld Console
+                    labels.append([0., 0., 0., 0., 0., 0., 0., 0., 0., 1.]) #9
+                elif n == 3: # Camera
+                    labels.append([0., 0., 0., 0., 0., 0., 0., 1., 0., 0.]) #7
+                elif n == 4: # Phone
+                    labels.append([0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]) #4
+                elif n == 5: # Desktop
+                    labels.append([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.]) #2
+                elif n == 6: # PC Laptop
+                    labels.append([0., 1., 0., 0., 0., 0., 0., 0., 0., 0.]) #1
+                elif n == 7: # Router
+                    labels.append([0., 0., 0., 0., 0., 1., 0., 0., 0., 0.]) #5
+                elif n == 8: # Macbook
+                    labels.append([1., 0., 0., 1., 0., 0., 0., 0., 0., 0.]) #0
+                elif n == 9: # Smart Speaker
+                    labels.append([0., 0., 0., 0., 0., 0., 1., 0., 0., 0.]) #6
+            else:
+                n += 1
+
+    return labels, allUnzippedImgs
 
 # read in unzipped training data + apply labels
 def readFiles(pathList):
@@ -170,49 +195,121 @@ def getBoundingBoxes(img, numRequested):
     sizes.sort(reverse=True)
 
     # show bounding boxes for debugging purposes
-    fig = plt.figure(figsize=(12, 5))
-    ax1 = fig.add_subplot(121)
+    #fig = plt.figure(figsize=(12, 5))
+    #ax1 = fig.add_subplot(121)
+    chosenBoxes = []
     for [top, bottom, left, right, size] in boundingBoxes:
         if (size in sizes[0:numRequested]):
             rectangle = matplotlib.patches.Rectangle((left, top), (right-left), (bottom-top), fill=False, edgecolor='red', linewidth=3)
-            ax1.add_patch(rectangle)
-    ax1.imshow(segment_mask);
-    plt.tight_layout()
-    plt.show()
+            #ax1.add_patch(rectangle)
+            chosenBoxes.append([top, bottom, left, right, size])
+    #ax1.imshow(segment_mask);
+    #plt.tight_layout()
+    #plt.show()
+    return chosenBoxes
+
+def cropImgs(img, boundingBoxes):
+    # bounding boxes are of shape (-1, 5) (aka [[top, bottom, left, right, size]])
+    croppedImgs = []
+    for [top, bottom, left, right, size] in boundingBoxes:
+        boxedImg = img[top:bottom, left:right].copy()
+        boxedImg = cv2.resize(boxedImg, dsize=(448, 416), interpolation=cv2.INTER_CUBIC)
+        croppedImgs.append(boxedImg)
+    #cv2.imshow("cropped", boxedImg)
+    #cv2.waitKey(0)
+    return np.array(croppedImgs)
 
 # translate results to english
 def translateResults(resArr):
-    translations = []
+    # voting system
+    translations = {}
     for result in resArr:
         if result == 0:
-            translations.append("Mac Laptop")
+            if "Mac Laptop" in translations:
+                translations["Mac Laptop"] += 1
+            else:
+                translations["Mac Laptop"] = 1
         elif result == 1:
-            translations.append("PC Laptop")
+            if "PC Laptop" in translations:
+                translations["PC Laptop"] += 1
+            else:
+                translations["PC Laptop"] = 1
         elif result == 2:
-            translations.append("Desktop")
+            if "Desktop" in translations:
+                translations["Desktop"] += 1
+            else:
+                translations["Desktop"] = 1
         elif result == 3:
-            translations.append("Tablet")
+            if "Tablet" in translations:
+                translations["Tablet"] += 1
+            else:
+                translations["Tablet"] = 1
         elif result == 4:
-            translations.append("Phone")
+            if "Phone" in translations:
+                translations["Phone"] += 1
+            else:
+                translations["Phone"] = 1
         elif result == 5:
-            translations.append("Router")
+            if "Router" in translations:
+                translations["Router"] += 1
+            else:
+                translations["Router"] = 1
         elif result == 6:
-            translations.append("Smart Speaker")
+            if "Smart Speaker" in translations:
+                translations["Smart Speaker"] += 1
+            else:
+                translations["Smart Speaker"] = 1
         elif result == 7:
-            translations.append("Camera")
+            if "Camera" in translations:
+                translations["Camera"] += 1
+            else:
+                translations["Camera"] = 1
         elif result == 8:
-            translations.append("TV")
+            if "TV" in translations:
+                translations["TV"] += 1
+            else:
+                translations["TV"] = 1
         elif result == 9:
-            translations.append("Handheld Game Console")
+            if "Handheld Game Console" in translations:
+                translations["Handheld Game Console"] += 1
+            else:
+                translations["Handheld Game Console"] = 1
     return translations
+
+def runModel(filename):
+    # To run the saved model on user's image.
+    # Note: if you do not have saved weights, please run "python model.py" from the model folder first
+    
+    # initialize graph
+    m2 = Model(448, 416)
+    session2 = tf.Session()
+    session2.run(tf.global_variables_initializer())
+    
+    # restore weights and other variables
+    saver = tf.train.Saver()
+    saver.restore(session2, "../model/tmp/model.ckpt")
+    
+    # get user's uploaded image
+    userPathList = ['../userData/']
+    userImgData = np.array(getTestImgs(userPathList))
+    userImg = userImgData[0]
+    
+    # draw bounding boxes, crop image to box boundaries, & run each through model
+    boundingBoxes = getBoundingBoxes(userImg, 5)
+    croppedImgs = cropImgs(userImg, boundingBoxes)
+    #print(croppedImgs.shape)
+    result = session2.run(m2.answer, feed_dict={m2.image: croppedImgs})
+    return translateResults(result) # apply voting system for final results
 
 def main():
     # number of label categories: 10
     numLabels = 10 # labels should be one-hot vectors
     
     #import data
-    pathList = ['../scraper/unsplash/imgs/Macbook/', '../scraper/unsplash/imgs/Phone/', '../scraper/unsplash/imgs/Camera/'] # list of zipped data
-    labelData, imgData = readFiles(pathList)
+    # pathList = ['../scraper/unsplash/imgs/Macbook/', '../scraper/unsplash/imgs/Phone/', '../scraper/unsplash/imgs/Camera/'] # list of zipped data
+    path = ['./imgs.zip']
+    # labelData, imgData = readFiles(pathList)
+    labelData, imgData = readZippedFiles(path)
     labelData = np.array(labelData)
     imgData = np.array(imgData)
     imgHeight = imgData.shape[1]
@@ -227,9 +324,10 @@ def main():
     m = Model(imgHeight, imgWidth)
     session = tf.Session()
     session.run(tf.global_variables_initializer())
+    saver = tf.train.Saver()
     
     # Training:
-    numEpochs = 12
+    numEpochs = 12#30
     batchSz = 50
     numTrainData = imgData.shape[0] # amount of images for training
 
@@ -262,11 +360,29 @@ def main():
         print("BATCH ACC")
         print(totalAcc / totalChecked)
 
+    save_path = saver.save(session, "./tmp/model.ckpt") # save model
+
     # Testing:
-    testPathList = ['../testData/']
+    '''
+    testPathList = ['./test/']
     testImgData = np.array(getTestImgs(testPathList))
+    print(testImgData)
+    print(testImgData[0].shape)
+    print(testImgData[4].shape)
     result = session.run(m.answer, feed_dict={m.image: testImgData})
     print(translateResults(result))
+    '''
+    '''
+    userPathList = ['../userData/']
+    userImgData = np.array(getTestImgs(userPathList))
+    #print(userImgData.shape)
+    userImg = userImgData[0]
+    boundingBoxes = getBoundingBoxes(userImg, 5)
+    croppedImgs = cropImgs(userImg, boundingBoxes)
+    print(croppedImgs.shape)
+    result = session.run(m.answer, feed_dict={m.image: croppedImgs})
+    print(translateResults(result))
+    '''
 
     return
 
