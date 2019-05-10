@@ -20,10 +20,10 @@ def homepage():
         
         else:
             # remove old images in userData folder
-            toRemove = [ temp for temp in os.listdir(app.config['userDataFolder'])]
+            toRemove = [temp for temp in os.listdir(app.config['userDataFolder'])]
             for temp in toRemove:
                 os.remove(os.path.join(app.config['userDataFolder'], temp))
-            
+                
             # save new image to userData folder
             file.save(os.path.join(app.config['userDataFolder'], file.filename))
 
