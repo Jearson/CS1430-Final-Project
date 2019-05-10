@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 from skimage import io, img_as_ubyte, img_as_float32
 import skimage.segmentation
+from PIL import Image
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -85,6 +86,8 @@ def readZippedFiles(pathList):
                 continue
             if not currFile[-1] == '/':
                 printRes = str(n) + ") " + currFile
+                if n == 0:
+                    continue
                 print(printRes)
                 byteFile = zippedF.read(currFile)
                 imgFile = cv2.imdecode(np.frombuffer(byteFile, np.uint8), cv2.IMREAD_COLOR) # 1 for greyscale?
@@ -107,7 +110,7 @@ def readZippedFiles(pathList):
                 elif n == 7: # Router
                     labels.append([0., 0., 0., 0., 0., 1., 0., 0., 0., 0.]) #5
                 elif n == 8: # Macbook
-                    labels.append([1., 0., 0., 1., 0., 0., 0., 0., 0., 0.]) #0
+                    labels.append([1., 0., 0., 0., 0., 0., 0., 0., 0., 0.]) #0
                 elif n == 9: # Smart Speaker
                     labels.append([0., 0., 0., 0., 0., 0., 1., 0., 0., 0.]) #6
             else:
@@ -195,15 +198,17 @@ def getBoundingBoxes(img, numRequested):
     sizes.sort(reverse=True)
 
     # show bounding boxes for debugging purposes
-    #fig = plt.figure(figsize=(12, 5))
-    #ax1 = fig.add_subplot(121)
+    fig = plt.figure(figsize=(12, 5))
+    ax1 = fig.add_subplot(121)
     chosenBoxes = []
     for [top, bottom, left, right, size] in boundingBoxes:
         if (size in sizes[0:numRequested]):
             rectangle = matplotlib.patches.Rectangle((left, top), (right-left), (bottom-top), fill=False, edgecolor='red', linewidth=3)
-            #ax1.add_patch(rectangle)
+            ax1.add_patch(rectangle)
             chosenBoxes.append([top, bottom, left, right, size])
-    #ax1.imshow(segment_mask);
+    ax1.imshow(segment_mask);
+    plt.savefig('static/userData/result.png')
+    Image.open('static/userData/result.png').save('static/userData/result.png','png')
     #plt.tight_layout()
     #plt.show()
     return chosenBoxes
@@ -211,6 +216,7 @@ def getBoundingBoxes(img, numRequested):
 def cropImgs(img, boundingBoxes):
     # bounding boxes are of shape (-1, 5) (aka [[top, bottom, left, right, size]])
     croppedImgs = []
+    croppedImgs.append(cv2.resize(img, dsize=(448, 416), interpolation=cv2.INTER_CUBIC)) # add original Image
     for [top, bottom, left, right, size] in boundingBoxes:
         boxedImg = img[top:bottom, left:right].copy()
         boxedImg = cv2.resize(boxedImg, dsize=(448, 416), interpolation=cv2.INTER_CUBIC)
@@ -223,57 +229,61 @@ def cropImgs(img, boundingBoxes):
 def translateResults(resArr):
     # voting system
     translations = {}
-    for result in resArr:
+    for numLoc, result in enumerate(resArr):
+        toAdd = 1
+        if numLoc == 0:
+            toAdd = 3 # greater weight for whole image vote
+        
         if result == 0:
             if "Mac Laptop" in translations:
-                translations["Mac Laptop"] += 1
+                translations["Mac Laptop"] += toAdd
             else:
-                translations["Mac Laptop"] = 1
+                translations["Mac Laptop"] = toAdd
         elif result == 1:
             if "PC Laptop" in translations:
-                translations["PC Laptop"] += 1
+                translations["PC Laptop"] += toAdd
             else:
-                translations["PC Laptop"] = 1
+                translations["PC Laptop"] = toAdd
         elif result == 2:
             if "Desktop" in translations:
-                translations["Desktop"] += 1
+                translations["Desktop"] += toAdd
             else:
-                translations["Desktop"] = 1
+                translations["Desktop"] = toAdd
         elif result == 3:
             if "Tablet" in translations:
-                translations["Tablet"] += 1
+                translations["Tablet"] += toAdd
             else:
-                translations["Tablet"] = 1
+                translations["Tablet"] = toAdd
         elif result == 4:
             if "Phone" in translations:
-                translations["Phone"] += 1
+                translations["Phone"] += toAdd
             else:
-                translations["Phone"] = 1
+                translations["Phone"] = toAdd
         elif result == 5:
             if "Router" in translations:
-                translations["Router"] += 1
+                translations["Router"] += toAdd
             else:
-                translations["Router"] = 1
+                translations["Router"] = toAdd
         elif result == 6:
             if "Smart Speaker" in translations:
-                translations["Smart Speaker"] += 1
+                translations["Smart Speaker"] += toAdd
             else:
-                translations["Smart Speaker"] = 1
+                translations["Smart Speaker"] = toAdd
         elif result == 7:
             if "Camera" in translations:
-                translations["Camera"] += 1
+                translations["Camera"] += toAdd
             else:
-                translations["Camera"] = 1
+                translations["Camera"] = toAdd
         elif result == 8:
             if "TV" in translations:
-                translations["TV"] += 1
+                translations["TV"] += toAdd
             else:
-                translations["TV"] = 1
+                translations["TV"] = toAdd
         elif result == 9:
             if "Handheld Game Console" in translations:
-                translations["Handheld Game Console"] += 1
+                translations["Handheld Game Console"] += toAdd
             else:
-                translations["Handheld Game Console"] = 1
+                translations["Handheld Game Console"] = toAdd
     return translations
 
 def runModel(filename):
@@ -290,7 +300,7 @@ def runModel(filename):
     saver.restore(session2, "../model/tmp/model.ckpt")
     
     # get user's uploaded image
-    userPathList = ['../userData/']
+    userPathList = ['../interface/static/userData/']
     userImgData = np.array(getTestImgs(userPathList))
     userImg = userImgData[0]
     

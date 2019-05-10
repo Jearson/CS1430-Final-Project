@@ -1,7 +1,22 @@
 body {
     text-align: center;
+    background-color: #1A090D;
+    color: white;
+}
+
+h1 {
+    padding: 20px 0 20px 0;
 }
 
 input {
-    padding: 10px 5px;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: 1px solid black;
+    color: black;
+    background-color: white;
+}
+
+img {
+    height: 300px;
+    width: auto;
 }
