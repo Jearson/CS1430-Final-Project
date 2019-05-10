@@ -28,7 +28,7 @@ Scraping Instructions (all commands are run in the 'scraper' directory):
 		can only successfully download images for around 20min at a time. Switch
 		wifi before then. Otherwise most of the rest of the product images won't 
 		be able to be downloaded and you'll get a lot of empty directories
-	- To resize have all the images into one zipfile in the model folder:
+	- To resize all the images and put them into a zipfile in the model folder:
 		- Run 'make zip'
 
 Running the Model: (if you don't already have saved weights or want to train on new data)
