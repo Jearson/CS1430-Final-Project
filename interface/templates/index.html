@@ -1,0 +1,16 @@
+<html>
+    <head>
+        <title>IOT Identifier</title>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/styles.css') }}">
+    </head>
+    <body>
+      <h1>IOT Identifier</h1>
+      <h3>{{msg}}</h3>
+      <form action="/" method="POST" enctype="multipart/form-data">
+	<input type="file" name="file" accept="image/*">
+        <br><br>
+        <input type="submit" value="Submit">
+      </form>
+      <p>{{results}}</p>
+    </body>
+</html>

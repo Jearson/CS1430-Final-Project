@@ -221,6 +221,7 @@ def cropImgs(img, boundingBoxes):
 
 # translate results to english
 def translateResults(resArr):
+    # voting system
     translations = {}
     for result in resArr:
         if result == 0:
@@ -275,6 +276,31 @@ def translateResults(resArr):
                 translations["Handheld Game Console"] = 1
     return translations
 
+def runModel(filename):
+    # To run the saved model on user's image.
+    # Note: if you do not have saved weights, please run "python model.py" from the model folder first
+    
+    # initialize graph
+    m2 = Model(448, 416)
+    session2 = tf.Session()
+    session2.run(tf.global_variables_initializer())
+    
+    # restore weights and other variables
+    saver = tf.train.Saver()
+    saver.restore(session2, "../model/tmp/model.ckpt")
+    
+    # get user's uploaded image
+    userPathList = ['../userData/']
+    userImgData = np.array(getTestImgs(userPathList))
+    userImg = userImgData[0]
+    
+    # draw bounding boxes, crop image to box boundaries, & run each through model
+    boundingBoxes = getBoundingBoxes(userImg, 5)
+    croppedImgs = cropImgs(userImg, boundingBoxes)
+    #print(croppedImgs.shape)
+    result = session2.run(m2.answer, feed_dict={m2.image: croppedImgs})
+    return translateResults(result) # apply voting system for final results
+
 def main():
     # number of label categories: 10
     numLabels = 10 # labels should be one-hot vectors
@@ -298,6 +324,7 @@ def main():
     m = Model(imgHeight, imgWidth)
     session = tf.Session()
     session.run(tf.global_variables_initializer())
+    saver = tf.train.Saver()
     
     # Training:
     numEpochs = 12#30
@@ -333,6 +360,8 @@ def main():
         print("BATCH ACC")
         print(totalAcc / totalChecked)
 
+    save_path = saver.save(session, "./tmp/model.ckpt") # save model
+
     # Testing:
     '''
     testPathList = ['./test/']
@@ -343,6 +372,7 @@ def main():
     result = session.run(m.answer, feed_dict={m.image: testImgData})
     print(translateResults(result))
     '''
+    '''
     userPathList = ['../userData/']
     userImgData = np.array(getTestImgs(userPathList))
     #print(userImgData.shape)
@@ -352,6 +382,7 @@ def main():
     print(croppedImgs.shape)
     result = session.run(m.answer, feed_dict={m.image: croppedImgs})
     print(translateResults(result))
+    '''
 
     return
 
