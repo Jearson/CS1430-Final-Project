@@ -4,6 +4,7 @@ import zipfile
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 from skimage import io, img_as_ubyte, img_as_float32
 import skimage.segmentation
 
@@ -194,40 +195,84 @@ def getBoundingBoxes(img, numRequested):
     sizes.sort(reverse=True)
 
     # show bounding boxes for debugging purposes
-    fig = plt.figure(figsize=(12, 5))
-    ax1 = fig.add_subplot(121)
+    #fig = plt.figure(figsize=(12, 5))
+    #ax1 = fig.add_subplot(121)
+    chosenBoxes = []
     for [top, bottom, left, right, size] in boundingBoxes:
         if (size in sizes[0:numRequested]):
             rectangle = matplotlib.patches.Rectangle((left, top), (right-left), (bottom-top), fill=False, edgecolor='red', linewidth=3)
-            ax1.add_patch(rectangle)
-    ax1.imshow(segment_mask);
-    plt.tight_layout()
-    plt.show()
+            #ax1.add_patch(rectangle)
+            chosenBoxes.append([top, bottom, left, right, size])
+    #ax1.imshow(segment_mask);
+    #plt.tight_layout()
+    #plt.show()
+    return chosenBoxes
+
+def cropImgs(img, boundingBoxes):
+    # bounding boxes are of shape (-1, 5) (aka [[top, bottom, left, right, size]])
+    croppedImgs = []
+    for [top, bottom, left, right, size] in boundingBoxes:
+        boxedImg = img[top:bottom, left:right].copy()
+        boxedImg = cv2.resize(boxedImg, dsize=(448, 416), interpolation=cv2.INTER_CUBIC)
+        croppedImgs.append(boxedImg)
+    #cv2.imshow("cropped", boxedImg)
+    #cv2.waitKey(0)
+    return np.array(croppedImgs)
 
 # translate results to english
 def translateResults(resArr):
-    translations = []
+    translations = {}
     for result in resArr:
         if result == 0:
-            translations.append("Mac Laptop")
+            if "Mac Laptop" in translations:
+                translations["Mac Laptop"] += 1
+            else:
+                translations["Mac Laptop"] = 1
         elif result == 1:
-            translations.append("PC Laptop")
+            if "PC Laptop" in translations:
+                translations["PC Laptop"] += 1
+            else:
+                translations["PC Laptop"] = 1
         elif result == 2:
-            translations.append("Desktop")
+            if "Desktop" in translations:
+                translations["Desktop"] += 1
+            else:
+                translations["Desktop"] = 1
         elif result == 3:
-            translations.append("Tablet")
+            if "Tablet" in translations:
+                translations["Tablet"] += 1
+            else:
+                translations["Tablet"] = 1
         elif result == 4:
-            translations.append("Phone")
+            if "Phone" in translations:
+                translations["Phone"] += 1
+            else:
+                translations["Phone"] = 1
         elif result == 5:
-            translations.append("Router")
+            if "Router" in translations:
+                translations["Router"] += 1
+            else:
+                translations["Router"] = 1
         elif result == 6:
-            translations.append("Smart Speaker")
+            if "Smart Speaker" in translations:
+                translations["Smart Speaker"] += 1
+            else:
+                translations["Smart Speaker"] = 1
         elif result == 7:
-            translations.append("Camera")
+            if "Camera" in translations:
+                translations["Camera"] += 1
+            else:
+                translations["Camera"] = 1
         elif result == 8:
-            translations.append("TV")
+            if "TV" in translations:
+                translations["TV"] += 1
+            else:
+                translations["TV"] = 1
         elif result == 9:
-            translations.append("Handheld Game Console")
+            if "Handheld Game Console" in translations:
+                translations["Handheld Game Console"] += 1
+            else:
+                translations["Handheld Game Console"] = 1
     return translations
 
 def main():
@@ -255,7 +300,7 @@ def main():
     session.run(tf.global_variables_initializer())
     
     # Training:
-    numEpochs = 30
+    numEpochs = 12#30
     batchSz = 50
     numTrainData = imgData.shape[0] # amount of images for training
 
@@ -289,12 +334,23 @@ def main():
         print(totalAcc / totalChecked)
 
     # Testing:
+    '''
     testPathList = ['./test/']
     testImgData = np.array(getTestImgs(testPathList))
     print(testImgData)
     print(testImgData[0].shape)
     print(testImgData[4].shape)
     result = session.run(m.answer, feed_dict={m.image: testImgData})
+    print(translateResults(result))
+    '''
+    userPathList = ['../userData/']
+    userImgData = np.array(getTestImgs(userPathList))
+    #print(userImgData.shape)
+    userImg = userImgData[0]
+    boundingBoxes = getBoundingBoxes(userImg, 5)
+    croppedImgs = cropImgs(userImg, boundingBoxes)
+    print(croppedImgs.shape)
+    result = session.run(m.answer, feed_dict={m.image: croppedImgs})
     print(translateResults(result))
 
     return
