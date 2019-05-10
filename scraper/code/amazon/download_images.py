@@ -8,6 +8,7 @@ import urllib.request as urlr
 import requests
 from bs4 import BeautifulSoup
 import random
+from PIL import Image
 
 IMG_ROOT = "./imgs"
 SEARCHPG_URL = "https://www.amazon.com/s?k={}&lo=list&page={}&qid=1556933209&ref=sr_pg_1"
@@ -172,10 +173,14 @@ def download_images(query, start_pg, end_pg, dirname):
                     with open(filename, 'wb') as f:
                         f.write(imgdata)
                 else:
+                    # Assume that it's a WebP RIFF and try to write it as jpen
                     imgdata = base64.b64decode(img_data[24:-1])
-                    filename = os.path.join(query_dir, "amazon_{}_{}-{}.png").format(query,pg_num,i)
+                    filename = os.path.join(query_dir, "amazon_{}_{}-{}.jpg").format(query,pg_num,i)
                     with open(filename, 'wb') as f:
                         f.write(imgdata)
+                    #  Convert thewritten file into png
+                    im = Image.open(filename).convert("RGB")
+                    im.save(filename,"jpeg")
             except:
                 print("Error occured decoding image on page-index '{}-{}' for query '{}'. Contents of 'src' tag: {}".format(pg_num, i, query, product_divs[0].img['src']))
 

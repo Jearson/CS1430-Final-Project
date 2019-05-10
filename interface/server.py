@@ -5,18 +5,22 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'model'))
 from model import runModel
 app = Flask(__name__)
 
-app.config['userDataFolder'] = '../userData/'
+app.config['userDataFolder'] = './static/userData' #'../userData/'
 
 @app.route("/", methods=["GET", "POST"])
 def homepage():
     if request.method == "GET":
-        return render_template('index.html', results="None", msg="Please choose a jpg or png file.")
+        return render_template('index.html', userImg="default.jpg", results="None", msg="Please choose a jpg or png file.")
     
     elif request.method == 'POST':
-        file = request.files['file']
         
+        if 'file' not in request.files:
+            return render_template('index.html', userImg="default.jpg", results="None", msg="Please choose a file.")
+        
+        file = request.files['file']
+
         if file.filename == '':
-            return render_template('index.html', results="results", msg="Please choose a valid file.")
+            return render_template('index.html', userImg="default.jpg", results="None", msg="Please choose a valid file.")
         
         else:
             # remove old images in userData folder
@@ -29,7 +33,7 @@ def homepage():
 
             # run model with saved weights on new user image
             result = runModel(file.filename)
-            return render_template('index.html', results=result, msg="Success!")
+            return render_template('index.html', userImg="result.png", results=result, msg="Success!")
 
 if __name__ == '__main__':
     app.run(debug=False, port=8080, host='0.0.0.0') 
