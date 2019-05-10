@@ -62,7 +62,7 @@ class Model:
         return tf.losses.softmax_cross_entropy(self.label, self.prediction)
     
     def optimizer_function(self):
-        return tf.train.AdamOptimizer(5E-5, beta2=0.999).minimize(self.loss)
+        return tf.train.AdamOptimizer(5E-4, beta1=.9, beta2=0.999).minimize(self.loss)
 
     
     def accuracy_function(self):
