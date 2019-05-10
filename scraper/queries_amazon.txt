@@ -1,1 +1,1 @@
-code/unsplash/queries.txt
+code/amazon/queries.txt
